@@ -414,6 +414,7 @@ server.on ( "/microajax3.js", []() {
 
   server.on ( "/admin/values", send_network_configuration_values_html );
   server.on ( "/admin/generalvalues", send_general_configuration_values_html);
+  
 
   server.serveStatic("/", SPIFFS, "/");
 
