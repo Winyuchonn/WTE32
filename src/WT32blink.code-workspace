@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "WT32blink",
+			"path": ".."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.tcc": "cpp"
+		}
+	}
+}

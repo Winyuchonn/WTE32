@@ -1,0 +1,41 @@
+~inc:header.inc~
+<div id="content">
+<h1>Reboot In Progress...</h1>
+<p>Your settings were successfully saved, and the board is now rebooting 
+to configure itself with the new settings.</p>
+<p align="center"><b>Your board is now located at: 
+<a href="http://~rebootaddr~/">http://~rebootaddr~/</a></b></p>
+<p id="redir_message" align="center"></p>
+<h3>Reconnection Instructions</h3>
+<ol>
+<li style="margin-bottom:10px"><b>Did you change the hostname, IP or MAC address?</b><br />
+	It is necessary to clear the address caches in your web browser and OS.
+	From the command prompt in Windows, enter "nbtstat&nbsp;-R" to clear the hostname cache, 
+	close your current web browser, open a new web browser, and then try to access the web address above.</li>
+<li style="margin-bottom:10px "><b>Did you try the IP address?</b><br />
+	Try accessing the module directly at the IP address you know.
+	(ex: enter "http://192.168.1.99/" into your browser).  If this fails, then 
+	the IP address you set is not reachable.  Try reset to factory setting
+    with hold down the reset button and power on about 2 second
+    until led status to blink one time.</li>
+	<p ></p>
+</ol>
+</div>
+<script language="javascript">
+function rebootDummy(x)
+{
+	var time = 5; 
+	var interval = setInterval(function() {
+        var el = document.getElementById("redir_message");
+        if(time == 0) {
+			clearInterval(interval); 
+			window.location.href = 'http://~rebootaddr~/';
+        }
+        var text = "Automatic redirect in " + time + " sec..";
+        el.innerHTML = text;
+        time--;
+    }, 1000);
+}
+setTimeout("newAJAXCommand('/protect/reboot.cgi',rebootDummy,false);",500);
+</script>
+~inc:footer.inc~
