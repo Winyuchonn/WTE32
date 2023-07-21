@@ -1111,10 +1111,20 @@ const char mqtt_page[] PROGMEM = R"=====(
                   <div><label>Password: </label>
                     <input type="password" id="pass_mqtt" name="pass_mqtt" value="" maxlength="8" placeholder="Password">
                     <br>
-                    <br>
-              
                     Maximum characters of 8
                   </div>
+                 
+                  <br>
+                  <h3 style="background-color: #096209; color: white;">Topic for MQTT</h3>
+                   <div><label>Publish Topic: </label>
+                    <input type="text" id="pub_topic" name="pub_topic" value="" placeholder="Publish Topic">
+                    </div>
+                    <br>
+                    <div><label>subscribe Topic: </label>
+                    <input type="text" id="sub_topic" name="sub_topic" value="" placeholder="subscribe Topic">
+                    </div>
+
+                  <br>
                   <br>
                 </fieldset>
                 <div>
