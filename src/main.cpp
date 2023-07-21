@@ -19,6 +19,7 @@
 #include "Hal_ads1110.h"
 #include "km07reg.h"
 #include <WiFi.h>
+#include <ArduinoJson.h>
 
 
 // #include "telnet_app.h"
@@ -31,6 +32,20 @@
 //#define ASYNC_TCP_SSL_ENABLED       false
 
 #include <AsyncMQTT_ESP32.h>
+#include <PubSubClient.h>
+
+
+
+
+//test mqtt
+
+const char *ID        = "MQTTClient_SSL-Client";  // Name of our device, must be unique
+const char *TOPIC     = "MQTT_Pub";               // Topic to subcribe to
+const char *subTopic  = "MQTT_Sub";               // Topic to subcribe to
+
+IPAddress mqttServer(192, 168, 100, 138);
+
+//test mqtt
 
 
 #define FORMAT_SPIFFS_IF_FAILED true
@@ -90,8 +105,77 @@ Ticker Km07_handle;
 
 
 
+
 Type_config config;
 Type_ModbusTCP modbus_tcp[2];
+
+
+
+//test mqtt function
+
+void callback(char* topic, byte* payload, unsigned int length)
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+
+  for (unsigned int i = 0; i < length; i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+
+  Serial.println();
+}
+
+WiFiClient    ethClient;
+PubSubClient    client(mqttServer, 1883, callback, ethClient);
+
+void reconnect()
+{
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+    Serial.print("Attempting MQTT connection to ");
+    Serial.print(mqttServer);
+
+    // Attempt to connect
+    if (client.connect(ID, "try", "try"))
+    {
+      Serial.println("...connected");
+
+      // Once connected, publish an announcement...
+      String data = "Hello from MQTTClient_SSL on ";
+
+      client.publish(TOPIC, data.c_str());
+
+      //Serial.println("Published connection message successfully!");
+      //Serial.print("Subcribed to: ");
+      //Serial.println(subTopic);
+
+      // This is a workaround to address https://github.com/OPEnSLab-OSU/SSLClient/issues/9
+      //ethClientSSL.flush();
+      // ... and resubscribe
+      client.subscribe(subTopic);
+      // for loopback testing
+      client.subscribe(TOPIC);
+      // This is a workaround to address https://github.com/OPEnSLab-OSU/SSLClient/issues/9
+      //ethClientSSL.flush();
+    }
+    else
+    {
+      Serial.print("...failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+//test mqtt function
+
+
 
 void fail(const char* msg) {
   Serial.println(msg);
@@ -313,7 +397,12 @@ void setup() {
 
   // Static IP, leave without this line to get IP via DHCP
   // ETH.config(myIP, myGW, mySN, myDNS);
-  //config.dhcp=0;
+
+
+
+
+  //config.dhcp=1; ปิดด้วย
+  config.dhcp=1;
   if(config.dhcp){
      // << dhcp mode 
      Serial.println("DHCP MODE");
@@ -414,7 +503,8 @@ server.on ( "/microajax3.js", []() {
 
   server.on ( "/admin/values", send_network_configuration_values_html );
   server.on ( "/admin/generalvalues", send_general_configuration_values_html);
-  
+
+
 
   server.serveStatic("/", SPIFFS, "/");
 
@@ -424,8 +514,15 @@ server.on ( "/microajax3.js", []() {
   Serial.printf("Serial Baudrate=%d port=%d\r\n",config.baudrate,config.port);
   Serial.printf("Serial1 Baudrate=%d port=%d\r\n",config.baudrate,config.port_2);
 
-  ConfigSerial();
-  ConfigSerial1();
+
+
+
+  //เปิดกลับ
+  //ConfigSerial();
+  //ConfigSerial1();
+  //เปิดกลับ
+
+
   if(Serial1.available())
     {
       Serial.println("Start UART1");
@@ -441,11 +538,80 @@ server.on ( "/microajax3.js", []() {
   //SW_RTS_handle.attach(0.25,task_sw_rst);
  // ADC_app_handle.attach(0.1,task_adc);
   Km07_handle.attach(0.5,regKm07.update);
+
+
+  //mqtt setup
+  client.setServer(mqttServer, 1883);
+  client.setCallback(callback);
+  delay(1500);
+  //mqtt setup
 }
+
+
+#define MQTT_PUBLISH_INTERVAL_MS       5000L
+
+
+
+unsigned long lastMsg = 0;
+
+
+
+void mqtt_handle(){
+
+// mqtt loop
+    
+    static unsigned long now;
+    const size_t capacity = JSON_OBJECT_SIZE(6); // Adjust this size as per your JSON structure
+    DynamicJsonDocument jsonDoc(capacity);
+    jsonDoc["sensor1"] = "VoltR";
+    jsonDoc["value1"] = regKm07.VoltR;
+    jsonDoc["sensor2"] = "VoltS";
+    jsonDoc["value2"] = regKm07.VoltS;
+    jsonDoc["sensor3"] = "VoltT";
+    jsonDoc["value3"] = regKm07.VoltT;
+    String jsonString;
+    serializeJson(jsonDoc, jsonString);
+
+  if (!client.connected())
+  {
+    reconnect();
+  }
+
+  // Sending Data
+  now = millis();
+
+  if (now - lastMsg > MQTT_PUBLISH_INTERVAL_MS)
+  {
+    lastMsg = now;
+
+    if (!client.publish(TOPIC, jsonString.c_str()))
+    {
+      Serial.println("Message failed to send.");
+    }
+
+    Serial.print("Message Send : " + String(TOPIC) + " => ");
+    Serial.println(jsonString);
+  }
+
+  client.loop();
+
+
+  //mqtt loop
+
+
+}
+
+
+
+
 
 
 void loop() {
   server.handleClient();
+  mqtt_handle();
+
+  
+
   //telnet_app2();
   //digitalWrite(LED2,led2);
 }
